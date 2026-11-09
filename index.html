@@ -1,0 +1,155 @@
+<!doctype html>
+<!-- Vị trí file: wp-content/gb-tools/encoding-security/ma-hoa-rot13.html -->
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Công cụ mã hóa ROT13 online - ROT13 Cipher</title>
+<meta name="description" content="Mã hóa và giải mã ROT13 trực tuyến nhanh chóng. Dịch chuyển bảng chữ cái 13 vị trí bảo mật an toàn ngay trên trình duyệt.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11"></script>
+<style type="text/tailwindcss">
+  @theme {
+    --font-sans: Roboto, ui-sans-serif, system-ui, sans-serif;
+    --color-primary: #fdca1e; --color-primary-hover: #e8b008; --color-primary-soft: #fffbeb;
+    --color-primary-ink: #9c6406; --color-ink: #0f172a; --color-neutral: #e2e8f0;
+  }
+</style>
+</head>
+<body class="bg-white font-sans text-ink antialiased">
+<main class="mx-auto max-w-4xl p-4 sm:p-6 space-y-6">
+  
+  <div class="bg-white border border-neutral rounded-2xl p-6 shadow-xs space-y-6">
+    
+    <!-- Ô Đầu vào -->
+    <div class="space-y-2">
+      <div class="flex items-center justify-between text-xs font-semibold text-slate-600">
+        <span class="font-bold text-sm text-ink">Đầu vào</span>
+        <div><span id="inputCharCount">0</span> ký tự · <span id="inputByteCount">0</span> byte</div>
+      </div>
+      <textarea id="inputText" rows="6" oninput="processROT13()" placeholder="Nhập văn bản để áp dụng ROT13..." class="w-full rounded-xl border border-neutral p-3.5 text-sm font-mono outline-none focus:border-primary bg-white resize-y leading-relaxed"></textarea>
+    </div>
+
+    <!-- Hàng nút hành động thao tác (Chuẩn y hệt hình mẫu) -->
+    <div class="flex flex-wrap items-center gap-2 pt-1">
+      <button type="button" onclick="swapText()" class="min-h-10 rounded-xl border border-neutral px-4 font-semibold text-xs hover:border-primary bg-slate-100 cursor-pointer">
+        Tráo đổi
+      </button>
+      <button type="button" onclick="copyOutput()" class="min-h-10 rounded-xl bg-primary px-4 font-bold text-xs text-ink hover:bg-primary-hover shadow-xs cursor-pointer flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+        Sao chép
+      </button>
+      <button type="button" onclick="downloadOutput()" class="min-h-10 rounded-xl bg-primary px-4 font-bold text-xs text-ink hover:bg-primary-hover shadow-xs cursor-pointer flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Tải xuống
+      </button>
+      <button type="button" onclick="clearAll()" class="min-h-10 rounded-xl border border-neutral px-4 font-semibold text-xs hover:border-primary bg-slate-100 cursor-pointer">
+        Thông thoáng
+      </button>
+      <button type="button" onclick="resetDefault()" class="min-h-10 rounded-xl border border-neutral px-4 font-semibold text-xs hover:border-primary bg-slate-100 cursor-pointer">
+        Cài lại
+      </button>
+    </div>
+
+    <!-- Ô Kết quả -->
+    <div class="space-y-2 pt-2 border-t border-neutral">
+      <div class="flex items-center justify-between text-xs font-semibold text-slate-600">
+        <span class="font-bold text-sm text-ink">Kết quả</span>
+        <div><span id="outputCharCount">0</span> ký tự · <span id="outputByteCount">0</span> byte</div>
+      </div>
+      <textarea id="outputText" rows="6" readonly placeholder="Kết quả sẽ hiển thị ở đây..." class="w-full rounded-xl border border-neutral p-3.5 text-sm font-mono outline-none bg-slate-50 resize-y leading-relaxed select-all"></textarea>
+    </div>
+
+    <!-- Hộp thông báo dưới cùng chuẩn y hệt mẫu -->
+    <div class="border-2 border-dashed border-neutral rounded-xl p-4 text-center text-xs text-slate-400">
+      Nhập văn bản để áp dụng phép biến đổi ROT13 trong thời gian thực
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+  async function gbCopy(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+    const t = document.createElement('textarea'); t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.appendChild(t); t.select(); const ok = document.execCommand('copy'); t.remove(); return ok;
+  }
+
+  function gbDownload(data, filename, type = 'application/octet-stream') {
+    const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function rot13Transform(str) {
+    return str.split('').map(char => {
+      const code = char.charCodeAt(0);
+      // Chữ thường a-z (97 - 122)
+      if (code >= 97 && code <= 122) {
+        return String.fromCharCode(((code - 97 + 13) % 26) + 97);
+      }
+      // Chữ hoa A-Z (65 - 90)
+      if (code >= 65 && code <= 90) {
+        return String.fromCharCode(((code - 65 + 13) % 26) + 65);
+      }
+      return char;
+    }).join('');
+  }
+
+  function processROT13() {
+    const text = document.getElementById('inputText').value;
+    
+    // Thống kê đầu vào
+    const encoder = new TextEncoder();
+    const inputBytes = encoder.encode(text);
+    document.getElementById('inputCharCount').textContent = text.length;
+    document.getElementById('inputByteCount').textContent = inputBytes.length;
+
+    // Thực thi thuật toán ROT13
+    const result = rot13Transform(text);
+    document.getElementById('outputText').value = result;
+
+    // Thống kê đầu ra
+    const outputBytes = encoder.encode(result);
+    document.getElementById('outputCharCount').textContent = result.length;
+    document.getElementById('outputByteCount').textContent = outputBytes.length;
+  }
+
+  function swapText() {
+    const outVal = document.getElementById('outputText').value;
+    if (!outVal) return;
+    document.getElementById('inputText').value = outVal;
+    processROT13();
+  }
+
+  async function copyOutput() {
+    const val = document.getElementById('outputText').value;
+    if (!val) return;
+    const ok = await gbCopy(val);
+    if (ok) alert('Đã sao chép kết quả vào bộ nhớ tạm!');
+  }
+
+  function downloadOutput() {
+    const val = document.getElementById('outputText').value;
+    if (!val) return;
+    const blob = new Blob([val], { type: 'text/plain;charset=utf-8' });
+    gbDownload(blob, 'rot13-result.txt');
+  }
+
+  function clearAll() {
+    document.getElementById('inputText').value = '';
+    processROT13();
+  }
+
+  function resetDefault() {
+    document.getElementById('inputText').value = '';
+    processROT13();
+  }
+
+  // Khởi tạo chạy lần đầu
+  processROT13();
+</script>
+</body>
+</html>
